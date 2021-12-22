@@ -6,63 +6,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Form Bootstrap</title>
     
-    <!-- bootstrap css -->
+    <!-- css -->
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <!-- bootstrap css -->
+    <link rel="stylesheet" href="assets/vendor/kendo/css/kendo.default-main.min.css">
+    <!-- css -->
 
     <style>
         .header-button-section{
             margin: 8px 0px;
         }
 
-        #genre-wrap .btn{
-            /* display: inline; */
+        .btn-genre.active{
+            color: #fff;
+            background-color: #28a745;
+            border-color: #28a745;
         }
+
         #genre-wrap{
             overflow-x: auto;
             display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
-            width: 203vh;
+            flex-wrap: wrap;
+            flex-direction: column;
+            height: 60vh;
+            justify-content: space-around;
+        }
+
+        .search-btn-wrap{
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .movie-wrapper{
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-content: space-around;
+        }
+
+        .k-widget.k-multiselect.form-control{
+            padding: 0;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="row header-button-section">
-            <div class="col md-6 pl-0">
+        <div class="row">
+            <div class="col-md-3">
+                <h4>Filter</h4>
+                <h6>Kata kunci</h6>
+                <!-- <div class="input-group"> -->
+                    <div class="row">
+                        <div class="col-sm-9 pr-1"><select id="textSearch"></select></div>
+                        <div class="col-sm-3 pl-0"><button class="btn btn-sm btn-outline-secondary" onclick="searchMovie()" type="button">Search</button></div>
+                    </div>
+                    
+                    <!-- <div class="input-group-append"> -->
+                      
+                    <!-- </div> -->
+                <!-- </div> -->
+                
+                <h6>urutan</h6>
+                <button class="btn btn-sm btn-sorting btn-block" onclick="setSorting(this)">A-Z</button>
+                <h6>Kategori</h6>
                 <div id="genre-wrap"></div>
             </div>
-            <div class="col md-6 pr-0">
-                <div class="input-group ">
-                    <input type="text" class="form-control" placeholder="Search movie..." aria-label="Search movie..." aria-describedby="basic-addon2">
-                    <div class="input-group-append">
-                      <button class="btn btn-outline" type="button">Search</button>
-                    </div>
-                  </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col movie-wrapper">
-                <div class="card" style="width: 18rem;">
-                    <img class="card-img-top" src="..." alt="Card image cap">
-                    <div class="card-body">
-                      <h5 class="card-title">Judul</h5>
-                      <p class="card-text">deskripsi.</p>
-                    </div>
-                    <!-- <ul class="list-group list-group-flush">
-                      <li class="list-group-item">Cras justo odio</li>
-                      <li class="list-group-item">Dapibus ac facilisis in</li>
-                      <li class="list-group-item">Vestibulum at eros</li>
-                    </ul> -->
-                    <div class="card-body">
-                      <a href="#" class="card-link">Watch</a>
-                      <!-- <a href="#" class="card-link">Another link</a> -->
-                    </div>
+            <div class="col-md-9">
+                <h4>Movie</h4>
+                <div class="movie-wrapper">
+                    yuhuuuu
                 </div>
             </div>
-        </d iv>
+        </div>
     </div>
 
     <div class="modal fade" id="formModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -167,15 +183,25 @@
     <!-- jquery js -->
     
     <!-- bootstrap js -->
-    <SCript src="assets/vendor/bootstrap/js/bootstrap.min.js"></SCript>
+    <Script src="assets/vendor/bootstrap/js/bootstrap.min.js"></SCript>
     <!-- bootstrap js -->
+
+    <!-- kendo -->
+    <script src="assets/vendor/kendo/js/kendo.all.min.js"></script>
+    <!-- kendo -->
     
 
     <script>
         let api_key = "e7a095ca67a422c6b365856d5c949367"
         let tmbd_api = "https://api.themoviedb.org/3/"
-        let lang = "en-US"
+        let imgPosterPrefix = "https://image.tmdb.org/t/p/w220_and_h330_face"
+        let lang = "id"
         let genres = []
+        let filter = {
+            // with_keywords:"",
+            sort_by:"title.asc",
+            // with_genres:"",
+        }
         const getGenre = ()=>{
             $.get(`${tmbd_api}genre/movie/list?api_key=${api_key}&language=${lang}`, function(data, status){
                 if (status == 'success') {
@@ -188,20 +214,114 @@
         const renderGenre = (data = [])=>{
             let btnwrap = $("#genre-wrap")
             btnwrap.html("")
-            let all = $(`<button type="button" class="btn btn-success" data-toggle="modal" data-target="#formModal">
+            let all = $(`<button type="button" id="genre-" class="btn btn-sm btn-genre active m-1" onclick="(setGenre)(this)" >
                     All
                 </button>`)
             btnwrap.append(all)
 
             if (data.length > 0) {
                 data.forEach((val,key)=>{ 
-                    let btn = $(`<button type="button" id="genre-${val.id}" class="btn btn-outline ml-3">${val.name}</button>`)
+                    let btn = $(`<button type="button" id="genre-${val.id}" class="btn btn-sm btn-genre m-1" onclick="(setGenre)(this)">${val.name}</button>`)
                     btnwrap.append(btn)
                 })
             }
         }
+
+        const renderMiltiSelect = () =>{
+            $("#textSearch").kendoMultiSelect({
+                placeholder: "Search by keyword...",
+                dataTextField: "name",
+                dataValueField: "id",
+                autoBind: false,
+                filter: "startswith",
+                filtering: function(e) {
+                    var filter = e.filter;
+
+                    if (!filter || !filter.value) {
+                        //prevent filtering if the filter does not have value
+                        e.preventDefault();
+                    }
+                },
+                minLength: 3,
+                dataSource: {
+                    // type: "odata",
+                    serverFiltering: true,
+                    transport: {
+                        read: function (options) {
+                            console.log(options)
+                            filterVal = ""
+                            if (options.data.filter.filters.length>0) {
+                                filterVal=options.data.filter.filters[0].value
+                            }
+                            $.get(`${tmbd_api}/search/keyword?api_key=${api_key}&query=${filterVal}`,(data,status)=>{
+                                options.success(data.results);
+                            })
+                        }
+                    },
+                }
+            });
+        }
+
+        const setGenre = (el) =>{
+            $(".btn-genre").removeClass("active")
+            $(el).addClass("active")
+            filter.with_genres = $(el).attr('id').substring(6)
+            if (filter.with_genres == "" ) {
+                delete filter.with_genres
+            }
+
+            getMovie(filter)
+        }
+
+        const setSorting = (el)=>{
+            let text = $(el).text()
+            if (text == "A-Z") {
+                $(el).text("Z-A")
+                filter.sort_by = 'title.desc'
+            }else{
+                $(el).text("A-Z")
+                filter.sort_by = 'title.asc'
+            }
+
+            getMovie(filter)
+        }
+
+        const searchMovie = ()=>{
+            items = $("#textSearch").data("kendoMultiSelect").value()
+            filter.with_keywords = items.join("|")
+            if (filter.with_genres == "") {
+                delete filter.with_genres
+            }
+            getMovie(filter)
+        }
+
+        const getMovie = (filterParam)=>{
+            params = {
+                api_key,
+                ...filterParam
+            }
+
+            $.get(`${tmbd_api}discover/movie?${jQuery.param(params)}`,(data,status)=>{
+                $(".movie-wrapper").html("")
+                data.results.forEach(dt => {
+                    $(".movie-wrapper").append($(`<div class="card" style="width: 10rem;">
+                        <img class="card-img-top" src="${imgPosterPrefix}${dt.poster_path}" alt="Card image cap">
+                        <div class="card-body">
+                          <h5 class="card-title">${dt.title}</h5>
+                          <p class="card-text">${dt.overview.substring(0,50)}</p>
+                        </div>
+                        <div class="card-body">
+                          <a href="#" class="card-link">Watch</a>
+                        </div>
+                    </div>`))
+                });
+            })
+        }
+
         $(function() {
             getGenre()
+            renderMiltiSelect()
+            getMovie(filter)
         })
     </script>
 </body>
